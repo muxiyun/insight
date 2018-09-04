@@ -40,6 +40,7 @@ type ReportDataReq struct {
 }
 
 var (
+	DB_URL         = os.Getenv("INSIGHT_INFLUX_DB_URL")
 	DB_NAME        = os.Getenv("INSIGHT_INFLUX_DB_NAME")
 	username       = os.Getenv("INSIGHT_INFLUX_USER_NAME")
 	password       = os.Getenv("INSIGHT_INFLUX_PASSWORD")
@@ -80,7 +81,7 @@ func main() {
 
 	// Create a new HTTPClient
 	influxClient, err := client.NewHTTPClient(client.HTTPConfig{
-		Addr:     "http://localhost:8086",
+		Addr:     "http://" + DB_URL + ":8086",
 		Username: username,
 		Password: password,
 	})
