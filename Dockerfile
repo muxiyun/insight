@@ -14,4 +14,4 @@ EXPOSE 8080
 
 # Set the entry point of the container to the bee command that runs the
 # application and watches for changes
-CMD ["./foo"]
+CMD ["/usr/src/app/foo"]
