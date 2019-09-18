@@ -39,6 +39,31 @@ type ReportDataReq struct {
 	Data []ReportData `json:"data" binding:"required"`
 }
 
+type ReportDataReqV2 struct {
+	Data []ReportDataV2 `json:"data" binding:"required"`
+}
+
+type MetaData struct {
+}
+
+type ReportDataV2 struct {
+	DeviceId  string `json:"deviceId" binding:"required"`
+	Type      string `json:"type" binding:"required"`
+	MainCat   string `json:"mainCat" binding:"required"`
+	SubCat    string `json:"subCat" binding:"required"`
+	ProductId string `json:"pid" binding:"required"`
+	// A         string `json:"a" binding:"required"` // a位
+	// B         string `json:"b" binding:"required"` // b位
+	// C         string `json:"c" binding:"required"` // c位
+	// D         string `json:"d" binding:"required"` // d位
+	Extra     string `json:"extra" binding:"required"`
+	Value     string `json:"value" binding:"required"`
+	Timestamp int64  `json:"timestamp" binding:"required"`
+	Platform  string `json:"platform" binding:"required"`
+	Os        string `json:"os" binding:"required"`
+	Uid       string `json:"uid" binding:"required"`
+}
+
 var (
 	DB_URL         = os.Getenv("INSIGHT_INFLUX_DB_URL")
 	DB_NAME        = os.Getenv("INSIGHT_INFLUX_DB_NAME")
@@ -68,6 +93,34 @@ func addBatchPoint(json *ReportData, bp client.BatchPoints) {
 	time := time.Unix(json.Timestamp, 0)
 
 	pt, err := client.NewPoint("data1", tags, fields, time)
+	if err != nil {
+		log.Fatal(err)
+	}
+	bp.AddPoint(pt)
+}
+
+func addBatchPointV2(json *ReportDataV2, bp client.BatchPoints) {
+	var tags map[string]string
+	tags = make(map[string]string)
+
+	tags["pid"] = json.ProductId
+	tags["did"] = json.DeviceId
+	tags["mainCat"] = json.MainCat
+	tags["subCat"] = json.SubCat
+	tags["type"] = json.Type
+	tags["uid"] = json.Uid
+	tags["platform"] = json.Platform
+	tags["os"] = json.Os
+
+	fields := map[string]interface{}{
+		"value": json.Value,
+		"extra": json.Extra,
+	}
+
+	// ms 转 ns
+	time := time.Unix(0, json.Timestamp*1000000)
+
+	pt, err := client.NewPoint("dataV2", tags, fields, time)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -132,7 +185,8 @@ func main() {
 				Precision: "s",
 			})
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			}
 			for _, element := range json.Data {
 				// index is the index where we are
@@ -142,12 +196,49 @@ func main() {
 
 			// Write the batch
 			if err := influxClient.Write(bp); err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			}
 
 			// Close client resources
 			if err := influxClient.Close(); err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
+			c.JSON(http.StatusOK, gin.H{"status": time.Now()})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+	})
+
+	r.POST("/api/v2/statistics/", func(c *gin.Context) {
+		var json ReportDataReqV2
+		if err := c.ShouldBindJSON(&json); err == nil {
+			// Create a new point batch
+			bp, err := client.NewBatchPoints(client.BatchPointsConfig{
+				Database:  DB_NAME,
+				Precision: "ms",
+			})
+			if err != nil {
+				log.Println(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
+			for _, element := range json.Data {
+				// index is the index where we are
+				// element is the element from someSlice for where we are
+				addBatchPointV2(&element, bp)
+			}
+
+			// Write the batch
+			if err := influxClient.Write(bp); err != nil {
+				log.Println(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
+
+			// Close client resources
+			if err := influxClient.Close(); err != nil {
+				log.Println(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			}
 			c.JSON(http.StatusOK, gin.H{"status": time.Now()})
 		} else {
