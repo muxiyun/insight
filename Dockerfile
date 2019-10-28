@@ -1,9 +1,9 @@
 FROM golang:1.11.0
 
 # Create app directory
-RUN mkdir -p /usr/go/src/github.com/muxiyun/insight
-COPY . /usr/go/src/github.com/muxiyun/insight
-WORKDIR /usr/go/src/github.com/muxiyun/insight
+RUN mkdir -p $GOPATH/src/github.com/muxiyun/insight
+COPY . $GOPATH/src/github.com/muxiyun/insight
+WORKDIR $GOPATH/src/github.com/muxiyun/insight
 
 # Build static file
 RUN go build foo.go
@@ -13,4 +13,4 @@ EXPOSE 8080
 
 # Set the entry point of the container to the bee command that runs the
 # application and watches for changes
-CMD ["/usr/src/app/foo"]
+CMD ["./foo"]
