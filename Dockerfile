@@ -1,12 +1,11 @@
 FROM golang:1.11.0
 
 # Create app directory
-RUN mkdir -p /usr/src/app
-COPY . /usr/src/app
-WORKDIR /usr/src/app
+RUN mkdir -p /usr/go/src/github.com/muxiyun/insight
+COPY . /usr/go/src/github.com/muxiyun/insight
+WORKDIR /usr/go/src/github.com/muxiyun/insight
 
 # Build static file
-RUN go get github.com/gin-gonic/gin github.com/influxdata/influxdb/client/v2 github.com/jinzhu/gorm github.com/jinzhu/gorm/dialects/mysql
 RUN go build foo.go
 
 # Expose the application on port 8080
