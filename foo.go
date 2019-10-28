@@ -225,6 +225,7 @@ func main() {
 			if err != nil {
 				log.Println(err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
 			}
 			for _, element := range json.Data {
 				// index is the index where we are
@@ -236,16 +237,20 @@ func main() {
 			if err := influxClient.Write(bp); err != nil {
 				log.Println(err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
 			}
 
 			// Close client resources
 			if err := influxClient.Close(); err != nil {
 				log.Println(err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
 			}
 			c.JSON(http.StatusOK, gin.H{"status": time.Now()})
+			return
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Bad Request"})
+			return
 		}
 	})
 
