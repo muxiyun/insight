@@ -47,21 +47,18 @@ type MetaData struct {
 }
 
 type ReportDataV2 struct {
-	DeviceId  string `json:"deviceId" binding:"required"`
-	Type      string `json:"type" binding:"required"`
-	MainCat   string `json:"mainCat" binding:"required"`
-	SubCat    string `json:"subCat" binding:"required"`
-	ProductId string `json:"pid" binding:"required"`
-	// A         string `json:"a" binding:"required"` // a位
-	// B         string `json:"b" binding:"required"` // b位
-	// C         string `json:"c" binding:"required"` // c位
-	// D         string `json:"d" binding:"required"` // d位
+	DeviceId  string `json:"did" binding:"required"`
+	A         string `json:"a" binding:"required"` // a位，原 ProductId
+	B         string `json:"b" binding:"required"` // b位,原 MainCat
+	C         string `json:"c" binding:"required"` // c位, 原 SubCat
+	D         string `json:"d" binding:"required"` // d位
 	Extra     string `json:"extra" binding:"required"`
-	Value     string `json:"value" binding:"required"`
-	Timestamp int64  `json:"timestamp" binding:"required"`
-	Platform  string `json:"platform" binding:"required"`
-	Os        string `json:"os" binding:"required"`
-	Uid       string `json:"uid" binding:"required"`
+	Value     string `json:"val" binding:"required"`
+	Timestamp int64  `json:"t" binding:"required"`    // ms 级时间戳
+	Platform  string `json:"plat" binding:"required"` // iOS/Android
+	Os        string `json:"os" binding:"required"`   // 系统版本号
+	Uid       string `json:"uid" binding:"required"`  // 用户id（校园产品中为学号）
+	UA        string `json:"ua" binding:"required"`   //User-agent，网页端需要传，移动端不用
 }
 
 var (
@@ -103,14 +100,15 @@ func addBatchPointV2(json *ReportDataV2, bp client.BatchPoints) {
 	var tags map[string]string
 	tags = make(map[string]string)
 
-	tags["pid"] = json.ProductId
+	tags["a"] = json.A
+	tags["b"] = json.B
+	tags["c"] = json.C
+	tags["d"] = json.D
 	tags["did"] = json.DeviceId
-	tags["mainCat"] = json.MainCat
-	tags["subCat"] = json.SubCat
-	tags["type"] = json.Type
 	tags["uid"] = json.Uid
 	tags["platform"] = json.Platform
 	tags["os"] = json.Os
+	tags["ua"] = json.UA
 
 	fields := map[string]interface{}{
 		"value": json.Value,
@@ -153,6 +151,9 @@ func main() {
 	db.AutoMigrate(&Device{})
 
 	r := gin.Default()
+
+	r.Use(gin.Recovery())
+
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
@@ -172,7 +173,7 @@ func main() {
 
 			c.JSON(http.StatusOK, gin.H{"status": time.Now()})
 		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Bad Request"})
 		}
 	})
 
@@ -242,7 +243,7 @@ func main() {
 			}
 			c.JSON(http.StatusOK, gin.H{"status": time.Now()})
 		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Bad Request"})
 		}
 	})
 
