@@ -40,7 +40,7 @@ type ReportDataReq struct {
 }
 
 type ReportDataReqV2 struct {
-	Data []ReportDataV2 `json:"data" binding:"required"`
+	Data []ReportDataV2 `json:"data" binding:"required,dive"`
 }
 
 type MetaData struct {
@@ -51,15 +51,15 @@ type ReportDataV2 struct {
 	Type      string `json:"type" binding:"required"` // 事件分类 比如 pageView/apiEvent/userEvent。pageView 代表页面浏览数据，apiEvent 代表 api 请求事件，比如报错。userEvent 代表用户事件，比如点击
 	A         string `json:"a" binding:"required"`    // a位，原 ProductId
 	B         string `json:"b" binding:"required"`    // b位,原 MainCat
-	C         string `json:"c" binding:"required"`    // c位, 原 SubCat
-	D         string `json:"d" binding:"required"`    // d位
-	Extra     string `json:"extra" binding:"required"`
+	C         string `json:"c"`                       // c位, 原 SubCat
+	D         string `json:"d"`                       // d位
+	Extra     string `json:"extra"`
 	Value     string `json:"val" binding:"required"`
 	Timestamp int64  `json:"t" binding:"required"`    // ms 级时间戳
 	Platform  string `json:"plat" binding:"required"` // iOS/Android
 	Os        string `json:"os" binding:"required"`   // 系统版本号
 	Uid       string `json:"uid" binding:"required"`  // 用户id（校园产品中为学号）
-	UA        string `json:"ua" binding:"required"`   //User-agent，网页端需要传，移动端不用
+	UA        string `json:"ua"`                      //User-agent，网页端需要传，移动端不用
 }
 
 var (
@@ -190,6 +190,7 @@ func main() {
 			if err != nil {
 				log.Println(err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
 			}
 			for _, element := range json.Data {
 				// index is the index where we are
@@ -201,16 +202,20 @@ func main() {
 			if err := influxClient.Write(bp); err != nil {
 				log.Println(err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
 			}
 
 			// Close client resources
 			if err := influxClient.Close(); err != nil {
 				log.Println(err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
 			}
 			c.JSON(http.StatusOK, gin.H{"status": time.Now()})
+			return
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 	})
 
